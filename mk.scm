@@ -31,9 +31,10 @@
 (define unbound (list 'unbound))
 
 (define var
-  (let ((counter -1))
+  (let ((counter 9))
     (lambda (scope)
       (set! counter (+ 1 counter))
+      (printf "counter is ~a\n" counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
@@ -1060,4 +1061,3 @@
       ,drop-N-b/c-dup-var ,drop-D-b/c-Y-or-N ,drop-T-b/c-Y-and-N
       ,move-T-to-D-b/c-t2-atom ,split-t-move-to-d-b/c-pair
       ,drop-from-D-b/c-T ,drop-t-b/c-t2-occurs-t1)))
-
