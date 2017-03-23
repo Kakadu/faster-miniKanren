@@ -31,10 +31,9 @@
 (define unbound (list 'unbound))
 
 (define var
-  (let ((counter 9))
+  (let ((counter 10))
     (lambda (scope)
       (set! counter (+ 1 counter))
-      ;(printf "new var  is ~a\n" counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
@@ -222,7 +221,6 @@
 ; could be threaded monadically, which could be faster or slower.
 (define unify
   (lambda (u v s)
-    ;(printf "Unify ~a\t~a\n" u v)
     (let ((u (walk u s))
           (v (walk v s)))
       (cond
