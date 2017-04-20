@@ -223,6 +223,7 @@
   (lambda (u v s)
     (let ((u (walk u s))
           (v (walk v s)))
+      ;(printf "unify ~a ~a\n" u v)
       (cond
         ((eq? u v) (values s '()))
         ((var? u) (ext-s-check u v s))
@@ -250,7 +251,8 @@
 
 (define-syntax inc
   (syntax-rules ()
-    ((_ e) (lambda () e))))
+    ((_ e)
+      (lambda () e))))
 
 (define empty-f (inc (mzero)))
 
@@ -275,10 +277,13 @@
   (syntax-rules ()
     ((_ (x ...) g0 g ...)
      (lambdag@ (st)
-       (inc
-         (let ((scope (subst-scope (state-S st))))
-           (let ((x (var scope)) ...)
-             (bind* (g0 st) g ...))))))))
+        (begin
+          ;(printf "create inc in fresh ======= ~a\n" (list 'x ...) )
+           (let ((scope (subst-scope (state-S st))))
+             (let ((x (var 'x scope)) ...)
+                (inc (begin
+                  (printf "inc after creating ~a was forced\n" (list 'x ...) )
+                  (bind* (g0 st) g ...))))))))))
 
 (define-syntax bind*
   (syntax-rules ()
@@ -327,17 +332,21 @@
   (syntax-rules ()
     ((_ (g0 g ...) (g1 g^ ...) ...)
      (lambdag@ (st)
-       (inc
+        (begin (printf "inc in conde\n")
+        (inc
          (let ((st (state-with-scope st (new-scope))))
            (mplus*
              (bind* (g0 st) g ...)
-             (bind* (g1 st) g^ ...) ...)))))))
+             (bind* (g1 st) g^ ...) ...))))))))
 
 (define-syntax mplus*
   (syntax-rules ()
     ((_ e) e)
-    ((_ e0 e ...) (mplus e0
-                    (inc (mplus* e ...))))))
+    ((_ e0 e ...)
+      (begin
+        (printf "mplus* calls mplus \n")
+        (mplus e0
+                    (inc (mplus* e ...)))))))
 
 (define mplus
   (lambda (c-inf f)
@@ -1060,3 +1069,10 @@
       ,drop-N-b/c-dup-var ,drop-D-b/c-Y-or-N ,drop-T-b/c-Y-and-N
       ,move-T-to-D-b/c-t2-atom ,split-t-move-to-d-b/c-pair
       ,drop-from-D-b/c-T ,drop-t-b/c-t2-occurs-t1)))
+
+(define-syntax project
+  (syntax-rules ()
+    ((_ (x ...) g g* ...)
+      (lambdag@ (s)
+        (let ((x (walk x (state-S s))) ...)
+          ((fresh () g g* ...) s))))))
