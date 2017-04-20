@@ -34,7 +34,7 @@
   (let ((counter 8))
     (lambda (name scope)
       (set! counter (+ 1 counter))
-      (printf "create new variable ~a as _.~a\n" name counter)
+      ;(printf "create new variable ~a as _.~a\n" name counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
@@ -220,8 +220,12 @@
 ;
 ; Right now appends the list of added values from sub-unifications. Alternatively
 ; could be threaded monadically, which could be faster or slower.
+
+(define unif-counter 0)
+
 (define unify
   (lambda (u v s)
+    ;(set! unif-counter (+ 1 unif-counter))
     (let ((u (walk u s))
           (v (walk v s)))
       ;(printf "unify ~a ~a\n" u v)
@@ -283,7 +287,7 @@
            (let ((scope (subst-scope (state-S st))))
              (let ((x (var 'x scope)) ...)
                 (inc (begin
-                  (printf "inc after creating ~a was forced\n" (list 'x ...) )
+                  ;(printf "inc after creating ~a was forced\n" (list 'x ...) )
                   (bind* (g0 st) g ...))))))))))
 
 (define-syntax bind*
@@ -333,19 +337,20 @@
   (syntax-rules ()
     ((_ (g0 g ...) (g1 g^ ...) ...)
      (lambdag@ (st)
-        (begin (printf "inc in conde\n")
-        (inc
-         (let ((st (state-with-scope st (new-scope))))
-           (mplus*
-             (bind* (g0 st) g ...)
-             (bind* (g1 st) g^ ...) ...))))))))
+        (begin
+          ;(printf "inc in conde\n")
+          (inc
+           (let ((st (state-with-scope st (new-scope))))
+             (mplus*
+               (bind* (g0 st) g ...)
+               (bind* (g1 st) g^ ...) ...))))))))
 
 (define-syntax mplus*
   (syntax-rules ()
     ((_ e) e)
     ((_ e0 e ...)
       (begin
-        (printf "mplus* calls mplus \n")
+        ;(printf "mplus* calls mplus \n")
         (mplus e0
                     (inc (mplus* e ...)))))))
 
