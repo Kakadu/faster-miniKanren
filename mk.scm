@@ -31,9 +31,10 @@
 (define unbound (list 'unbound))
 
 (define var
-  (let ((counter 10))
-    (lambda (scope)
+  (let ((counter 8))
+    (lambda (name scope)
       (set! counter (+ 1 counter))
+      (printf "create new variable ~a as _.~a\n" name counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
