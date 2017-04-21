@@ -1118,3 +1118,9 @@
       ,move-T-to-D-b/c-t2-atom ,split-t-move-to-d-b/c-pair
       ,drop-from-D-b/c-T ,drop-t-b/c-t2-occurs-t1)))
 
+(define-syntax project
+  (syntax-rules ()
+    ((_ (x ...) g g* ...)
+      (lambdag@ (s)
+        (let ((x (walk x (state-S s))) ...)
+          ((fresh () g g* ...) s))))))
