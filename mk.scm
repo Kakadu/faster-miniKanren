@@ -526,14 +526,18 @@
   (lambda (x)
     (lambda (st)
       (let ((c (c-from-st st x)))
+        (printf "going to reify ~a in\n\t~a\n\n" x c)
         (let ((c (cycle c)))
+          (printf "new c is\n\t~a\n\n" c)
           (let* ((S (c->S c))
                  (D (walk* (c->D c) S))
                  (Y (walk* (c->Y c) S))
                  (N (walk* (c->N c) S))
                  (T (walk* (c->T c) S)))
+            (printf "\tD  = ~a\n\n" D)
             (let ((v (walk* x S)))
               (let ((R (reify-S v (subst empty-subst-map nonlocal-scope))))
+                (printf "reified term is ~a\n" R)
                 (reify+ v R
                         (let ((D (remp
                                    (lambda (d)
@@ -947,6 +951,7 @@
 
 (define reify+
   (lambda (v R D Y N T)
+    (printf "call reify+ with D =          ~a\n\n" D)
     (form (walk* v R)
           (walk* D R)
           (walk* Y R)
@@ -1007,6 +1012,7 @@
 
 (define rem-subsumed
   (lambda (D)
+    (printf "rem-subsumed receives   ~a\n\n" D)
     (let rem-subsumed ((D D) (d^* '()))
       (cond
         ((null? D) d^*)
@@ -1018,6 +1024,7 @@
 
 (define subsumed?
   (lambda (d d*)
+    (printf "subsumed? called with '~a'   and    '~a'\n\n" d d*)
     (cond
       ((null? d*) #f)
       (else
