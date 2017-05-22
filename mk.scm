@@ -390,6 +390,18 @@
 ; c-inf: SearchStream
 ;     g: Goal
 ; -> SearchStream
+(define-syntax mplus*
+  (syntax-rules ()
+    ((_ e) e)
+    ((_ e0 e ...)
+      (begin
+        ;(printf "mplus* calls mplus \n")
+        (mplus e0
+          (lambda () (begin
+                        ;(printf " force inc from mplus*\n")
+                        (mplus* e ...))))))))
+
+
 (define bind
   (lambda (c-inf g)
     (case-inf c-inf
