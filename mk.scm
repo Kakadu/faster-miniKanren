@@ -262,11 +262,26 @@
 ; last answer needed to satisfy the query.
 (define choice (lambda (c f) (cons c f)))
 
+(define cur-inc -1)
+
+
 ; e: SearchStream
 ; -> (-> SearchStream)
 (define-syntax inc
-  (syntax-rules ()
-    ((_ e) (lambda () e))))
+    (syntax-rules ()
+      ((_ e) (begin
+               (printf "     thunk created ")
+               (set! cur-inc (1+ cur-inc))
+               (let* ((n cur-inc) (result
+                      (lambda ()
+                        ;(printf "              INVOKING ~a\n" 'e)
+                        (printf "     forcing thunk ~a\n" n)
+                        e)
+                      ))
+                 (printf "~a\n" n)
+                 result)
+               )))
+)
 
 ; Goal: (State -> SearchStream)
 
@@ -307,10 +322,21 @@
 (define mplus
   (lambda (c-inf f)
     (case-inf c-inf
-      (() (f))
-      ((f^) (inc (mplus (f) f^)))
-      ((c) (choice c f))
-      ((c f^) (choice c (inc (mplus (f) f^)))))))
+      (() (begin
+            (printf " mplus: 1st case\n")
+            (f)))
+      ((f^) (begin
+              (printf " mplus: 2nd case\n")
+              (inc (begin
+                  (printf " forcing thunk created by 2nd case of mplus\n")
+                  (mplus (f) f^)))))
+      ((c) (begin
+              (printf " mplus: 3rd case\n")
+              (choice c (f))))
+      ((c f^) (begin
+                (printf " mplus: 4th case\n")
+                (choice c (inc (mplus (f) f^))))))))
+
 
 ; c-inf: SearchStream
 ;     g: Goal
@@ -318,10 +344,31 @@
 (define bind
   (lambda (c-inf g)
     (case-inf c-inf
-      (() (mzero))
-      ((f) (inc (bind (f) g)))
-      ((c) (g c))
-      ((c f) (mplus (g c) (inc (bind (f) g)))))))
+      (() (begin
+            (printf " bind: 1st case\n")
+            (mzero)))
+      ((f) (begin
+              (printf " bind: 2nd case\n")
+              (inc (begin
+                  (printf " forcing thunk created by 2nd case of bind\n")
+                  (bind (f) g)))))
+      ((c) (begin
+              (printf " bind: 3rd case\n")
+              (g c)))
+      ((c f) (begin
+          (printf " bind: 4th case\n")
+          (let (( arg1 (g c)) )
+            (mplus arg1
+                  (inc (begin
+                    (printf " force thunk created by 5th case of bind\n")
+                    (bind (f) g)
+                  ))
+            )
+          )
+      ))
+    )
+  )
+)
 
 ; Int, SearchStream -> (ListOf SearchResult)
 (define take
@@ -390,7 +437,6 @@
 (define-syntax run*
   (syntax-rules ()
     ((_ (q0 q ...) g0 g ...) (run #f (q0 q ...) g0 g ...))))
-
 
 ; Constraints
 ; C refers to the constraint store map
