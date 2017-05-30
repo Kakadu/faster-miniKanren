@@ -94,7 +94,8 @@
     ; object if we haven't branched since its creation
     ; (the scope of the variable and the substitution are the same).
     ; Otherwise extend the substitution mapping.
-    (if (scope-eq? (var-scope x) (subst-scope S))
+    ;(if (scope-eq? (var-scope x) (subst-scope S))
+    (if #f
       (begin
         (set-var-val! x v)
         S)
