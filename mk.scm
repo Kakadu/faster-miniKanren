@@ -30,11 +30,23 @@
 ; or are bound in the substitution
 (define unbound (list 'unbound))
 
+(define log_enabled #t)
+(define mylog (lambda (f)
+  (if log_enabled (f))
+))
+(define-syntax PRINTF
+    (syntax-rules ()
+      ((_ e ...)
+          (mylog (lambda () (printf e ...)))
+          ;(void)
+        )
+))
+
 (define var
   (let ((counter 9))
     (lambda (name scope)
       (set! counter (+ 1 counter))
-      (printf "create new variable ~a as _.~a\n" name counter)
+      (PRINTF "create new variable ~a as _.~a\n" name counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
@@ -229,7 +241,7 @@
     ;(set! unif-counter (+ 1 unif-counter))
     (let ((u (walk u s))
           (v (walk v s)))
-      ;(printf "unify ~a ~a\n" u v)
+      ;(PRINTF "unify ~a ~a\n" u v)
       (cond
         ((eq? u v) (values s '()))
         ((var? u) (ext-s-check u v s))
@@ -267,7 +279,9 @@
 ;
 ; f is a thunk to avoid unnecessary computation in the case that c is the
 ; last answer needed to satisfy the query.
-(define choice (lambda (c f) (cons c f)))
+(define choice (lambda (c f)
+    (PRINTF "     created choice: ~a\n" f)
+    (cons c f)))
 
 (define cur-inc -1)
 
@@ -277,14 +291,14 @@
 (define-syntax inc
     (syntax-rules ()
       ((_ e) (begin
-               (printf "     thunk created ")
+               (PRINTF "     thunk created ")
                (set! cur-inc (1+ cur-inc))
                (let* ((n cur-inc) (result
                       (lambda ()
-                        (printf "     forcing thunk ~a\n" n)
+                        (PRINTF "     forcing thunk ~a\n" n)
                         e)
                       ))
-                 (printf "~a\n" n)
+                 (PRINTF "~a\n" n)
                  result)
                )))
 )
@@ -329,18 +343,18 @@
   (lambda (c-inf f)
     (case-inf c-inf
       (() (begin
-            (printf " mplus: 1st case\n")
+            (PRINTF " mplus: 1st case\n")
             (f)))
       ((f^) (begin
-              (printf " mplus: 2nd case\n")
+              (PRINTF " mplus: 2nd case\n")
               (inc (begin
-                  (printf " forcing thunk created by 2nd case of mplus\n")
+                  (PRINTF " forcing thunk created by 2nd case of mplus\n")
                   (mplus (f) f^)))))
       ((c) (begin
-              (printf " mplus: 3rd case\n")
-              (choice c (f))))
+              (PRINTF " mplus: 3rd case\n")
+              (choice c f)))
       ((c f^) (begin
-                (printf " mplus: 4th case\n")
+                (PRINTF " mplus: 4th case\n")
                 (choice c (inc (mplus (f) f^))))))))
 
 (define-syntax run
@@ -379,49 +393,34 @@
     ((_ (g0 g ...) (g1 g^ ...) ...)
      (lambdag@ (st)
         (begin
-          (printf " created inc in conde\n")
+          (PRINTF " created inc in conde\n")
           (inc
            (let ((st (state-with-scope st (new-scope))))
-              (printf " force a conde\n")
+              (PRINTF " force a conde\n")
               (mplus*
                 (bind* (g0 st) g ...)
                 (bind* (g1 st) g^ ...) ...))))))))
-
-; c-inf: SearchStream
-;     g: Goal
-; -> SearchStream
-(define-syntax mplus*
-  (syntax-rules ()
-    ((_ e) e)
-    ((_ e0 e ...)
-      (begin
-        ;(printf "mplus* calls mplus \n")
-        (mplus e0
-          (lambda () (begin
-                        ;(printf " force inc from mplus*\n")
-                        (mplus* e ...))))))))
-
 
 (define bind
   (lambda (c-inf g)
     (case-inf c-inf
       (() (begin
-            (printf " bind: 1st case\n")
+            (PRINTF " bind: 1st case\n")
             (mzero)))
       ((f) (begin
-              (printf " bind: 2nd case\n")
+              (PRINTF " bind: 2nd case\n")
               (inc (begin
-                  (printf " forcing thunk created by 2nd case of bind\n")
+                  (PRINTF " forcing thunk created by 2nd case of bind\n")
                   (bind (f) g)))))
       ((c) (begin
-              (printf " bind: 3rd case\n")
+              (PRINTF " bind: 3rd case\n")
               (g c)))
       ((c f) (begin
-          (printf " bind: 4th case\n")
+          (PRINTF " bind: 4th case\n")
           (let (( arg1 (g c)) )
             (mplus arg1
                   (inc (begin
-                    (printf " force thunk created by 5th case of bind\n")
+                    (PRINTF " force thunk created by 5th case of bind\n")
                     (bind (f) g)
                   ))
             )
@@ -450,12 +449,20 @@
     ((_ e) e)
     ((_ e g0 g ...) (bind* (bind e g0) g ...))))
 
+; c-inf: SearchStream
+;     g: Goal
 ; -> SearchStream
 (define-syntax mplus*
   (syntax-rules ()
     ((_ e) e)
-    ((_ e0 e ...) (mplus e0
-                    (inc (mplus* e ...))))))
+    ((_ e0 e ...)
+      (begin
+        ;(PRINTF "mplus* calls mplus \n")
+        (mplus e0
+          (inc (begin
+                  (PRINTF " force inc from mplus*\n")
+                  (mplus* e ...))))))))
+
 
 ; -> Goal
 (define-syntax fresh
@@ -464,13 +471,12 @@
      (lambdag@ (st)
        (begin
          ; this inc triggers interleaving
-         (printf "create inc in fresh ==== ~a\n" (list 'x ...) )
+         (PRINTF "create inc in fresh ==== ~a\n" (list 'x ...) )
          (inc
            (let ((scope (subst-scope (state-S st))))
              (let ((x (var 'x scope)) ...)
-
                (begin
-                     (printf "inc in fresh forced: ~a \n" (list 'x ...))
+                     (PRINTF "inc in fresh forced: ~a \n" (list 'x ...))
                      (bind* (g0 st) g ...)))))))) ))
 
 
