@@ -17,18 +17,27 @@
 
 (define scope-eq? eq?)
 
+(define all_unif_counter 0)
+(define logged_unif_counter 0)
+(define all_diseq_counter 0)
+(define logged_diseq_counter 0)
 
-; Logic variable object.
-; Contains:
-;   val - value for variable assigned by unification using set-var-val! optimization.
-;           unbound if not yet set or stored in substitution.
-;   scope - scope that the variable was created in.
-;   idx - unique numeric index for the variable. Used by the trie substitution representation.
-; Variable objects are compared by object identity.
+(define incr_unif (lambda ()
+  (set! all_unif_counter (+ 1 all_unif_counter))))
+(define incr_diseq (lambda ()
+  (set! all_diseq_counter (+ 1 all_diseq_counter))))
+(define log_unif (lambda ()
+  (set! logged_unif_counter (+ 1 logged_unif_counter))))
+(define log_diseq (lambda ()
+  (set! logged_diseq_counter (+ 1 logged_diseq_counter))))
 
-; The unique val for variables that have not yet been bound to a value
-; or are bound in the substitution
-(define unbound (list 'unbound))
+(define report_counters (lambda ()
+  (printf "total  unifications:  ~a\n" all_unif_counter)
+  (printf "logged unifications:  ~a\n" logged_unif_counter)
+  (printf "total  disequalities: ~a\n" all_diseq_counter)
+  (printf "logged disequalities: ~a\n" logged_diseq_counter)
+))
+
 
 (define log_enabled #t)
 (define mylog (lambda (f)
@@ -41,6 +50,18 @@
           ;(void)
         )
 ))
+
+; Logic variable object.
+; Contains:
+;   val - value for variable assigned by unification using set-var-val! optimization.
+;           unbound if not yet set or stored in substitution.
+;   scope - scope that the variable was created in.
+;   idx - unique numeric index for the variable. Used by the trie substitution representation.
+; Variable objects are compared by object identity.
+
+; The unique val for variables that have not yet been bound to a value
+; or are bound in the substitution
+(define unbound (list 'unbound))
 
 (define var
   (let ((counter 9))
@@ -566,9 +587,10 @@
                   (add-to-D st (cdr el) added)
                   st)))))))))
 
-(define =/=
-  (lambda (u v)
-    (=/=* `((,u . ,v)))))
+(define =/= (lambda (u v) (lambda (st) (begin
+    (incr_diseq)
+    ((=/=* `((,u . ,v))) st)
+))))
 
 (define absento
   (lambda (ground-atom term)
@@ -600,11 +622,12 @@
 (define ==
   (lambda (u v)
     (lambdag@ (st)
-      (let-values (((S added) (unify u v (state-S st))))
-        (if S
-          (and-foldl update-constraints (state S (state-C st)) added)
-          #f)))))
-
+      (begin
+        (incr_unif)
+        (let-values (((S added) (unify u v (state-S st))))
+          (if S
+            (and-foldl update-constraints (state S (state-C st)) added)
+            #f))))))
 
 ; Not fully optimized. Could do absento update with fewer hash-refs / hash-sets.
 (define update-constraints
