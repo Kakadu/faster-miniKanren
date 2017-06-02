@@ -304,8 +304,7 @@
     (PRINTF "     created choice: ~a\n" f)
     (cons c f)))
 
-(define cur-inc -1)
-
+(define cur-inc 0)
 
 ; e: SearchStream
 ; -> (-> SearchStream)
@@ -378,50 +377,9 @@
                 (PRINTF " mplus: 4th case\n")
                 (choice c (inc (mplus (f) f^))))))))
 
-(define-syntax run
-  (syntax-rules ()
-    ((_ n (q) g0 g ...)
-     (take n
-       (inc
-         ((fresh (q) g0 g ...
-            (lambdag@ (st)
-              (let ((st (state-with-scope st nonlocal-scope)))
-                (let ((z ((reify q) st)))
-                  ;(choice z empty-f)))))
-                  (unit z)))))
-          empty-state))))
-    ((_ n (q0 q1 q ...) g0 g ...)
-     (run n (x) (fresh (q0 q1 q ...) g0 g ... (== `(,q0 ,q1 ,q ...) x))))))
-
-(define-syntax run*
-  (syntax-rules ()
-    ((_ (q0 q ...) g0 g ...) (run #f (q0 q ...) g0 g ...))))
-
-(define take
-  (lambda (n f)
-    (cond
-      ((and n (zero? n)) '())
-      (else
-       (case-inf (f)
-         (() '())
-         ((f) (take n f))
-         ((c) (cons c '()))
-         ((c f) (cons c
-                  (take (and n (- n 1)) f))))))))
-
-(define-syntax conde
-  (syntax-rules ()
-    ((_ (g0 g ...) (g1 g^ ...) ...)
-     (lambdag@ (st)
-        (begin
-          (PRINTF " created inc in conde\n")
-          (inc
-           (let ((st (state-with-scope st (new-scope))))
-              (PRINTF " force a conde\n")
-              (mplus*
-                (bind* (g0 st) g ...)
-                (bind* (g1 st) g^ ...) ...))))))))
-
+; c-inf: SearchStream
+;     g: Goal
+; -> SearchStream
 (define bind
   (lambda (c-inf g)
     (case-inf c-inf
@@ -464,6 +422,21 @@
          ((c f) (cons c
                   (take (and n (- n 1)) f))))))))
 
+
+; -> Goal
+(define-syntax conde
+  (syntax-rules ()
+    ((_ (g0 g ...) (g1 g^ ...) ...)
+     (lambdag@ (st)
+        (begin
+          (PRINTF " created inc in conde\n")
+          (inc
+           (let ((st (state-with-scope st (new-scope))))
+              (PRINTF " force a conde\n")
+              (mplus*
+                (bind* (g0 st) g ...)
+                (bind* (g1 st) g^ ...) ...))))))))
+
 ; -> SearchStream
 (define-syntax bind*
   (syntax-rules ()
@@ -490,28 +463,17 @@
   (syntax-rules ()
     ((_ (x ...) g0 g ...)
      (lambdag@ (st)
-       (begin
-         ; this inc triggers interleaving
-         (PRINTF "create inc in fresh ==== ~a\n" (list 'x ...) )
-         (inc
-           (let ((scope (subst-scope (state-S st))))
-             (let ((x (var 'x scope)) ...)
-               (begin
+
+          (let ((scope (subst-scope (state-S st))))
+            (let ((x (var 'x scope)) ...)
+              (PRINTF "create inc in fresh ==== ~a\n" (list 'x ...) )
+              ; this inc triggers interleaving
+              (inc
+                (begin
                      (PRINTF "inc in fresh forced: ~a \n" (list 'x ...))
-                     (bind* (g0 st) g ...)))))))) ))
+                     (bind* (g0 st) g ...)))))))) )
 
 
-; -> Goal
-(define-syntax conde
-  (syntax-rules ()
-    ((_ (g0 g ...) (g1 g^ ...) ...)
-     (lambdag@ (st)
-       ; this inc triggers interleaving
-       (inc
-         (let ((st (state-with-scope st (new-scope))))
-           (mplus*
-             (bind* (g0 st) g ...)
-             (bind* (g1 st) g^ ...) ...)))))))
 
 (define-syntax run
   (syntax-rules ()
@@ -522,7 +484,8 @@
             (lambdag@ (st)
               (let ((st (state-with-scope st nonlocal-scope)))
                 (let ((z ((reify q) st)))
-                  (choice z (lambda () (lambda () #f)))))))
+                  ;(choice z empty-f)))))
+                  (unit z)))))
           empty-state))))
     ((_ n (q0 q1 q ...) g0 g ...)
      (run n (x) (fresh (q0 q1 q ...) g0 g ... (== `(,q0 ,q1 ,q ...) x))))))
