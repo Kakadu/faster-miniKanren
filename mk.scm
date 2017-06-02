@@ -226,8 +226,10 @@
 
 (define unify
   (lambda (u v s)
+    ;(set! unif-counter (+ 1 unif-counter))
     (let ((u (walk u s))
           (v (walk v s)))
+      ;(printf "unify ~a ~a\n" u v)
       (cond
         ((eq? u v) (values s '()))
         ((var? u) (ext-s-check u v s))
@@ -279,7 +281,6 @@
                (set! cur-inc (1+ cur-inc))
                (let* ((n cur-inc) (result
                       (lambda ()
-                        ;(printf "              INVOKING ~a\n" 'e)
                         (printf "     forcing thunk ~a\n" n)
                         e)
                       ))
@@ -377,11 +378,14 @@
   (syntax-rules ()
     ((_ (g0 g ...) (g1 g^ ...) ...)
      (lambdag@ (st)
-       (inc
-         (let ((st (state-with-scope st (new-scope))))
-           (mplus*
-             (bind* (g0 st) g ...)
-             (bind* (g1 st) g^ ...) ...)))))))
+        (begin
+          (printf " created inc in conde\n")
+          (inc
+           (let ((st (state-with-scope st (new-scope))))
+              (printf " force a conde\n")
+              (mplus*
+                (bind* (g0 st) g ...)
+                (bind* (g1 st) g^ ...) ...))))))))
 
 ; c-inf: SearchStream
 ;     g: Goal
@@ -446,11 +450,16 @@
   (syntax-rules ()
     ((_ (x ...) g0 g ...)
      (lambdag@ (st)
-       ; this inc triggers interleaving
-       (inc
-         (let ((scope (subst-scope (state-S st))))
-           (let ((x (var 'x scope)) ...)
-             (bind* (g0 st) g ...))))))))
+       (begin
+         ; this inc triggers interleaving
+         (printf "create inc in fresh ==== ~a\n" (list 'x ...) )
+         (inc
+           (let ((scope (subst-scope (state-S st))))
+             (let ((x (var 'x scope)) ...)
+
+               (begin
+                     (printf "inc in fresh forced: ~a \n" (list 'x ...))
+                     (bind* (g0 st) g ...)))))))) ))
 
 
 ; -> Goal
