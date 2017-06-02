@@ -31,9 +31,10 @@
 (define unbound (list 'unbound))
 
 (define var
-  (let ((counter -1))
-    (lambda (scope)
+  (let ((counter 9))
+    (lambda (name scope)
       (set! counter (+ 1 counter))
+      (printf "create new variable ~a as _.~a\n" name counter)
       (vector unbound scope counter))))
 
 ; Vectors are not allowed as terms, so terms that are vectors are variables.
@@ -220,6 +221,9 @@
 ;
 ; Right now appends the list of added values from sub-unifications. Alternatively
 ; could be threaded monadically, which could be faster or slower.
+
+(define unif-counter 0)
+
 (define unify
   (lambda (u v s)
     (let ((u (walk u s))
@@ -338,6 +342,46 @@
                 (printf " mplus: 4th case\n")
                 (choice c (inc (mplus (f) f^))))))))
 
+(define-syntax run
+  (syntax-rules ()
+    ((_ n (q) g0 g ...)
+     (take n
+       (inc
+         ((fresh (q) g0 g ...
+            (lambdag@ (st)
+              (let ((st (state-with-scope st nonlocal-scope)))
+                (let ((z ((reify q) st)))
+                  ;(choice z empty-f)))))
+                  (unit z)))))
+          empty-state))))
+    ((_ n (q0 q1 q ...) g0 g ...)
+     (run n (x) (fresh (q0 q1 q ...) g0 g ... (== `(,q0 ,q1 ,q ...) x))))))
+
+(define-syntax run*
+  (syntax-rules ()
+    ((_ (q0 q ...) g0 g ...) (run #f (q0 q ...) g0 g ...))))
+
+(define take
+  (lambda (n f)
+    (cond
+      ((and n (zero? n)) '())
+      (else
+       (case-inf (f)
+         (() '())
+         ((f) (take n f))
+         ((c) (cons c '()))
+         ((c f) (cons c
+                  (take (and n (- n 1)) f))))))))
+
+(define-syntax conde
+  (syntax-rules ()
+    ((_ (g0 g ...) (g1 g^ ...) ...)
+     (lambdag@ (st)
+       (inc
+         (let ((st (state-with-scope st (new-scope))))
+           (mplus*
+             (bind* (g0 st) g ...)
+             (bind* (g1 st) g^ ...) ...)))))))
 
 ; c-inf: SearchStream
 ;     g: Goal
@@ -405,7 +449,7 @@
        ; this inc triggers interleaving
        (inc
          (let ((scope (subst-scope (state-S st))))
-           (let ((x (var scope)) ...)
+           (let ((x (var 'x scope)) ...)
              (bind* (g0 st) g ...))))))))
 
 
@@ -438,6 +482,7 @@
 (define-syntax run*
   (syntax-rules ()
     ((_ (q0 q ...) g0 g ...) (run #f (q0 q ...) g0 g ...))))
+
 
 ; Constraints
 ; C refers to the constraint store map
@@ -1171,3 +1216,46 @@
       (lambdag@ (s)
         (let ((x (walk x (state-S s))) ...)
           ((fresh () g g* ...) s))))))
+
+(define-syntax myrun1
+  (syntax-rules ()
+   ((_ n (q) g0 g ...)
+    (take n
+      (let ((st empty-state))
+        (let ((scope (subst-scope (state-S st))))
+          (let ((q (var 'q scope)) )
+              (bind* (g0 st) g ...)
+              ) )
+      )
+    ))
+  )
+)
+
+(define-syntax myrun2
+  (syntax-rules ()
+   ((_ n (q r ) g0 g ...)
+    (take n
+      (let ((st empty-state))
+        (let ((scope (subst-scope (state-S st))))
+          (let ((q (var 'q scope)) (r (var 'r scope)) )
+              (bind* (g0 st) g ...)
+              ) )
+      )
+    ))
+  )
+)
+
+(define-syntax myrun3
+  (syntax-rules ()
+   ((_ n (q r s) g0 g ...)
+    (take n
+      (let ((st empty-state))
+        (let ((scope (subst-scope (state-S st))))
+          (let ((q (var 'q scope)) (r (var 'r scope))
+                (s (var 's scope)) )
+              (bind* (g0 st) g ...)
+              ) )
+      )
+    ))
+  )
+)
