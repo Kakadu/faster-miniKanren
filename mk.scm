@@ -41,7 +41,7 @@
 
 (define log_enabled #f)
 (define mylog (lambda (f)
-  (if log_enabled (f))
+  (if log_enabled (f) (void))
 ))
 (define-syntax PRINTF
     (syntax-rules ()
@@ -312,7 +312,7 @@
     (syntax-rules ()
       ((_ e) (begin
                (PRINTF "     thunk created ")
-               (set! cur-inc (1+ cur-inc))
+               ;(set! cur-inc (+ 1 cur-inc))
                (let* ((n cur-inc) (result
                       (lambda ()
                         (PRINTF "     forcing thunk ~a\n" n)
@@ -382,6 +382,7 @@
 ; -> SearchStream
 (define bind
   (lambda (c-inf g)
+    ;(when (>= all_unif_counter 2) (break 'bind "bind after second unification"))
     (case-inf c-inf
       (() (begin
             (PRINTF " bind: 1st case\n")
@@ -629,14 +630,6 @@
       ((pair? term)
        (vars (cdr term) (vars (car term) acc)))
       (else acc))))
-
-(define-syntax project
-  (syntax-rules ()
-    ((_ (x ...) g g* ...)
-     (lambdag@ (st)
-       (let ((x (walk* x (state-S st))) ...)
-         ((fresh () g g* ...) st))))))
-
 
 ; Create a constraint store of the old representation from a state object,
 ; so that we can use the old reifier. Only accumulates constraints related
