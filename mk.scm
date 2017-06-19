@@ -39,7 +39,7 @@
 ))
 
 
-(define log_enabled #t)
+(define log_enabled #f)
 (define mylog (lambda (f)
   (if log_enabled (f))
 ))
@@ -465,7 +465,7 @@
      (lambdag@ (st)
 
           (let ((scope (subst-scope (state-S st))))
-            (let ((x (var 'x scope)) ...)
+            (let* ((x (var 'x scope)) ...)
               (PRINTF "create inc in fresh ==== ~a\n" (list 'x ...) )
               ; this inc triggers interleaving
               (inc
