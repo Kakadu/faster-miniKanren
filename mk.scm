@@ -464,7 +464,7 @@
     ((_ (x ...) g0 g ...)
      (lambdag@ (st)
 
-          (let ((scope (subst-scope (state-S st))))
+          (let* ((scope (subst-scope (state-S st))))
             (let* ((x (var 'x scope)) ...)
               (PRINTF "create inc in fresh ==== ~a\n" (list 'x ...) )
               ; this inc triggers interleaving
