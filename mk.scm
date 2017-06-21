@@ -1124,3 +1124,5 @@
       (lambdag@ (s)
         (let ((x (walk x (state-S s))) ...)
           ((fresh () g g* ...) s))))))
+
+(define report_counters (lambda () (void)))
