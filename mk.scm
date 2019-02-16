@@ -30,6 +30,11 @@
 ; or are bound in the substitution
 (define unbound (list 'unbound))
 
+;; (define counter 0)
+;; (define clear_counters  (lambda () (set-var-val! counter 0) ))
+;; (define incr_counter    (lambda () (set! counter (+ 1 counter)) ))
+;; (define report_counters (lambda () (printf "unifications: ~a\n" counter) ))
+
 (define var
   (let ((counter -1))
     (lambda (scope)
@@ -481,10 +486,12 @@
 (define ==
   (lambda (u v)
     (lambdag@ (st)
-      (let-values (((S added) (unify u v (state-S st))))
-        (if S
-          (and-foldl update-constraints (state S (state-C st)) added)
-          #f)))))
+              (begin
+                ;(incr_counter)
+                (let-values (((S added) (unify u v (state-S st))))
+                  (if S
+                      (and-foldl update-constraints (state S (state-C st)) added)
+                      #f))))))
 
 
 ; Not fully optimized. Could do absento update with fewer hash-refs / hash-sets.
@@ -1125,4 +1132,4 @@
         (let ((x (walk x (state-S s))) ...)
           ((fresh () g g* ...) s))))))
 
-(define report_counters (lambda () (void)))
+;(define report_counters (lambda () (void)))
